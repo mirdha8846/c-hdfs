@@ -1,27 +1,27 @@
 package types
 
-type MetaData struct{
-	UserID string `json:userID`
+import "fmt"
+
+type MetaData struct {
+	UserID    string   `json:userID`
 	FileArray []string `json: fileArray`
-	
 }
 
-type FileStore struct{
+type FileStore struct {
 	StoreFile map[string][]string
 }
 
-func NewFileStore()*FileStore{
+func NewFileStore() *FileStore {
 	return &FileStore{
-		StoreFile:make(map[string][]string),
+		StoreFile: make(map[string][]string),
 	}
 }
 
-func (fs *FileStore) AddFile(userID string,fileName string){
-	fs.StoreFile[userID]=append(fs.StoreFile[userID], fileName)
+func (fs *FileStore) AddFile(userID string, fileName string) {
+	fs.StoreFile[userID] = append(fs.StoreFile[userID], fileName)
+	fmt.Println("my node metaData=",fs.StoreFile)
 }
 
-func (fs *FileStore) GetFile(userID string,fileName string){
+func (fs *FileStore) GetFile(userID string, fileName string) {
 	//todo-how?what type to return
 }
-
-

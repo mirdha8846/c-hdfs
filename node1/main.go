@@ -1,51 +1,72 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
-	"os"
+	// "os"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mirdha8846/c-hdfs.git/node1/encryption"
 	"github.com/mirdha8846/c-hdfs.git/node1/types"
 )
 
 func main() {
 	fmt.Println("Hello from Node 1!")
-	r:=gin.Default()
-	r.POST("/api/fileUpload",func(c *gin.Context) {
-		name:=c.PostForm("userID")
-		userfile,err:=c.FormFile("file")
-		if err!=nil{
-			c.JSON(400,gin.H{
-				"message":"internal server error",
-			})
+
+	r := gin.Default()
+
+	// Upload Route
+	r.POST("/api/fileUpload", func(c *gin.Context) {
+		name := c.PostForm("userID")
+		userFile, err := c.FormFile("file")
+		if err != nil {
+			c.JSON(400, gin.H{"message": "failed to read file"})
 			return
 		}
-		fs:=types.NewFileStore()
-		fs.AddFile(name,userfile.Filename)
-		//now first upload at temp folder and then access from temp and then
-		filePath:=filepath.Join("temp",userfile.Filename)
-		err=c.SaveUploadedFile(userfile,filePath)
-		if err!=nil{
-				c.JSON(400,gin.H{
-				"message":"internal server error",
-			})
+
+		// Save file to temp folder
+		tempPath := filepath.Join("temp", userFile.Filename)
+		err = c.SaveUploadedFile(userFile, tempPath)
+		if err != nil {
+			c.JSON(500, gin.H{"message": "failed to save file to temp"})
 			return
 		}
-		file,err:=os.Open(filePath)
-		if err!=nil{
-				c.JSON(400,gin.H{
-				"message":"internal server error",
-			})
+
+		// Generate AES key
+		keyStr, err := encryption.GenrateKey()
+		if err != nil {
+			c.JSON(500, gin.H{"message": "failed to generate key"})
 			return
 		}
-		
-		//encrypt it and then chunking part and then uploading on all servers
-		
+		key, _ := hex.DecodeString(keyStr) // Convert string key to []byte
 
+		// Encrypt the file and store to encrypted folder
+		encryptedPath := filepath.Join("encryptedFiles", userFile.Filename+".enc")
+		err = encryption.EncryptFile(key, tempPath, encryptedPath)
+		if err != nil {
+			c.JSON(500, gin.H{"message": "encryption failed"})
+			return
+		}
 
+		// Split the encrypted file
+		chunks, err := SplitFiles(encryptedPath, 3)
+		if err != nil {
+			c.JSON(500, gin.H{"message": "file splitting failed"})
+			return
+		}
 
+		// Store in memory (example use of your types.FileStore)
+		fs := types.NewFileStore()
+		fs.AddFile(name, userFile.Filename)
 
+		// Return chunk names and key
+		c.JSON(200, gin.H{
+			"message": "file uploaded, encrypted and split successfully",
+			"key":     keyStr,
+			"chunks":  chunks,
+		})
 	})
 
+	r.Run(":8082")
 }
