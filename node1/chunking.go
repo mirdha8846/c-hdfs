@@ -7,7 +7,12 @@ import (
 	"path/filepath"
 )
 
-func SplitFiles(filePath string, n int) ([]string, error) {
+type Chunk struct{
+	Name string
+	Reader *os.File
+}
+
+func SplitFiles(filePath string, n int) ([]Chunk, error) {
 	mainFile, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -22,7 +27,7 @@ func SplitFiles(filePath string, n int) ([]string, error) {
 	fileSize := fileInfo.Size()
 	chunkSize := fileSize / int64(n)
 
-	chunkingFiles := []string{}
+	var chunkingFiles []Chunk
 	baseName := filepath.Base(filePath)
 
 	for i := 0; i < n; i++ {
@@ -38,14 +43,20 @@ func SplitFiles(filePath string, n int) ([]string, error) {
 		} else {
 			_, err = io.CopyN(tempFile, mainFile, chunkSize)
 		}
-
+        readerFile,err:=os.Open(partFileName)
+		if err!=nil{
+			return nil,err
+		}
 		tempFile.Close()
 
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
 
-		chunkingFiles = append(chunkingFiles, partFileName)
+		chunkingFiles = append(chunkingFiles, Chunk{
+			Name: partFileName,
+			Reader:readerFile ,
+		})
 	}
 
 	return chunkingFiles, nil

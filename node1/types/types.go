@@ -1,6 +1,10 @@
 package types
 
-import "fmt"
+import (
+	// "fmt"
+	
+	// "os"
+)
 
 type MetaData struct {
 	UserID    string   `json:userID`
@@ -19,7 +23,7 @@ func NewFileStore() *FileStore {
 
 func (fs *FileStore) AddFile(userID string, fileName string) {
 	fs.StoreFile[userID] = append(fs.StoreFile[userID], fileName)
-	fmt.Println("my node metaData=",fs.StoreFile)
+	// fmt.Println("my node metaData=",fs.StoreFile)
 }
 
 func (fs *FileStore) GetFile(userID string, fileName string) {
