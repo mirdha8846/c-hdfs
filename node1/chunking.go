@@ -12,7 +12,7 @@ type Chunk struct{
 	Reader *os.File
 }
 
-func SplitFiles(filePath string, n int) ([]Chunk, error) {
+func SplitFiles(filePath string, tempPath string,n int) ([]Chunk, error) {
 	mainFile, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,48 @@ func SplitFiles(filePath string, n int) ([]Chunk, error) {
 			Reader:readerFile ,
 		})
 	}
-
+    go func(){
+     err:=os.Remove(tempPath)
+	 if err!=nil{
+		return
+	 }
+ 		
+	}()
 	return chunkingFiles, nil
 }
+
+func AddFiles(filesArray []Chunk) (Chunk, error) {
+	// Step 1: Create a temp file to write combined data
+	tempFile, err := os.CreateTemp("", "combined_*")
+	if err != nil {
+		return Chunk{}, err
+	}
+
+	// Step 2: Write all chunks into this temp file
+	for _, chunk := range filesArray {
+		chunk.Reader.Seek(0, io.SeekStart) // reset reader
+		_, err := io.Copy(tempFile, chunk.Reader)
+		if err != nil {
+			tempFile.Close()
+			return Chunk{}, err
+		}
+	}
+
+	// Step 3: Re-open file in read mode
+	tempFile.Close()
+	combinedFile, err := os.Open(tempFile.Name())
+	if err != nil {
+		return Chunk{}, err
+	}  
+	defer func() {
+		_ = os.RemoveAll("downloadedChunks")
+	}()
+
+	return Chunk{
+		Name:   "combined_file", // or original name
+		Reader: combinedFile,
+	}, nil
+}
+
+
 

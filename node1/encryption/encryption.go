@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	// "fmt"
+	// "bytes"
 )
 
 // EncryptFile encrypts the input file and writes the result to output file using the given key.
@@ -51,33 +53,71 @@ func EncryptFile(key []byte, inputPath, outputPath string) error {
 	return err
 }
 
-// DecryptFile decrypts the input file and writes the result to output file using the given key.
-func DecryptFile(key []byte, inputPath, outputPath string) error {
-	inFile, err := os.Open(inputPath)
-	if err != nil {
-		return err
-	}
-	defer inFile.Close()
 
-	outFile, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY, 0644)
+func DecryptFile(key []byte, reader io.Reader) (*os.File, error) {
+	// Create a temp file to write decrypted output
+	tempFile, err := os.CreateTemp("", "decrypted_*")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer outFile.Close()
 
+	// Create AES cipher
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	// Read IV from the beginning of the encrypted stream
 	iv := make([]byte, aes.BlockSize)
-	if _, err := io.ReadFull(inFile, iv); err != nil {
-		return err
+	if _, err := io.ReadFull(reader, iv); err != nil {
+		return nil, err
 	}
 
+	// Setup stream decryption
 	stream := cipher.NewCTR(block, iv)
-	reader := &cipher.StreamReader{S: stream, R: inFile}
+	streamReader := &cipher.StreamReader{S: stream, R: reader}
 
-	_, err = io.Copy(outFile, reader)
-	return err
+	// Decrypt and write directly to temp file
+	if _, err := io.Copy(tempFile, streamReader); err != nil {
+		tempFile.Close()
+		return nil, err
+	}
+
+	// Seek to start so frontend or next handler can read it
+	if _, err := tempFile.Seek(0, io.SeekStart); err != nil {
+		tempFile.Close()
+		return nil, err
+	}
+
+	return tempFile, nil
 }
+
+// func DecryptBytes(key []byte, encryptedData []byte) ([]byte, error) {
+// 	if len(encryptedData) < aes.BlockSize {
+// 		return nil, fmt.Errorf("encrypted data too short")
+// 	}
+
+// 	block, err := aes.NewCipher(key)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	iv := encryptedData[:aes.BlockSize]
+// 	ciphertext := encryptedData[aes.BlockSize:]
+
+// 	stream := cipher.NewCTR(block, iv)
+// 	reader := &cipher.StreamReader{
+// 		S: stream,
+// 		R: bytes.NewReader(ciphertext),
+// 	}
+
+// 	var decrypted bytes.Buffer
+// 	_, err = io.Copy(&decrypted, reader)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return decrypted.Bytes(), nil
+// }
+
+

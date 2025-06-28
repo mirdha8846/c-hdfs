@@ -1,15 +1,6 @@
 package types
 
-import (
-	// "fmt"
-	
-	// "os"
-)
 
-type MetaData struct {
-	UserID    string   `json:userID`
-	FileArray []string `json: fileArray`
-}
 
 type FileStore struct {
 	StoreFile map[string][]string
@@ -23,9 +14,21 @@ func NewFileStore() *FileStore {
 
 func (fs *FileStore) AddFile(userID string, fileName string) {
 	fs.StoreFile[userID] = append(fs.StoreFile[userID], fileName)
-	// fmt.Println("my node metaData=",fs.StoreFile)
+
 }
 
-func (fs *FileStore) GetFile(userID string, fileName string) {
-	//todo-how?what type to return
+func (fs *FileStore) GetFile(userID string, fileName string) (bool){
+	files,ok:=fs.StoreFile[userID]
+	 if !ok {
+		return false
+	 }
+
+	 for _,file:=range(files){
+		if file==fileName{
+			return true
+		}
+	 }
+	 return false
+
+
 }

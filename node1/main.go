@@ -4,22 +4,30 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"os"
 	"path/filepath"
-	
+
 	"github.com/gin-gonic/gin"
 	"github.com/mirdha8846/c-hdfs.git/node1/encryption"
 	"github.com/mirdha8846/c-hdfs.git/node1/types"
+	
 )
 
+
+//Todo-uploading file name ..so update uploading function and think how to store their name so we access these files
 type ChunkInfo struct {
     Name         string `json:"name"`
 }
-
+var fs = types.NewFileStore()
 func main() {
 	fmt.Println("Hello from Node 1!")
+	Init()
 
 	r := gin.Default()
-
+	keyStr, err := encryption.GenrateKey()
+		if err != nil{
+			return
+		}
 	// Upload Route
 	r.POST("/api/fileUpload", func(c *gin.Context) {
 		name := c.PostForm("userID")
@@ -38,49 +46,79 @@ func main() {
 		}
 
 		// Generate AES key
-		keyStr, err := encryption.GenrateKey()
-		if err != nil {
-			c.JSON(500, gin.H{"message": "failed to generate key"})
-			return
-		}
+		
 		key, _ := hex.DecodeString(keyStr) // Convert string key to []byte
 
 		// Encrypt the file and store to encrypted folder
 		encPath := filepath.Base(tempPath)
 		encryptedPath := filepath.Join("encryptedFiles", encPath+".enc")
+	
+		go func(){
+
 		err = encryption.EncryptFile(key, tempPath, encryptedPath)
 		if err != nil {
 			c.JSON(500, gin.H{"message": "encryption failed"})
 			return
 		}
-
-		// Split the encrypted file
-		chunkFiles, err := SplitFiles(encryptedPath, 3)
+		defer os.Remove(tempPath)
+		
+		
+		chunkFiles, err := SplitFiles(encryptedPath, tempPath,3)
 		if err != nil {
 			c.JSON(500, gin.H{"message": "file splitting failed"})
 			return
 		}
-
-		// Convert chunks to include base64 content
-		var chunks []ChunkInfo
-		for _, chunkFile := range chunkFiles {
-			// Read file content
+		Uploading(chunkFiles)
+		//todo - jo server pr file upload hui h kis naam se hui h..
 		
-			
-			chunks = append(chunks, ChunkInfo{
-				Name:    chunkFile.Name,
-				
-			})
-		}
-
-		// Store in memory (example use of your types.FileStore)
-		fs := types.NewFileStore()
+		//todo-remove chunking files...
+           
+		
+		defer os.Remove(encryptedPath)
+		
 		fs.AddFile(name, userFile.Filename)
-
+}()
 		c.JSON(200, gin.H{
 			"message": "file uploaded, encrypted and split successfully",
 			"key":     keyStr,
-			"chunks":  chunks,
+		
+		})
+	})
+
+	r.POST("/api/getFiles",func(c *gin.Context) {
+       userID:=c.PostForm("userID")
+	   fileName:=c.PostForm("fileName")
+       isExsit:=types.NewFileStore().GetFile(userID,fileName)
+	    if !isExsit {
+			c.JSON(400,gin.H{
+				"message":"no file found!!!",
+			})
+		}
+       
+		err,files:=GetFromNode(fileName)
+		if err!=nil{
+			c.JSON(400,gin.H{
+				"message":"Internal server error!!!",
+			})
+		}
+		completFile,err:=AddFiles(files)
+		if err!=nil{
+			c.JSON(400,gin.H{
+				"message":err,
+			})
+		}
+
+		key, _ := hex.DecodeString(keyStr) 
+		finalFile,err:=encryption.DecryptFile(key,completFile.Reader)
+		if err!=nil{
+			c.JSON(400,gin.H{
+				"message":"internal server error",
+			})
+		}
+
+		// defer os.Remove()
+		c.JSON(200,gin.H{
+			"File":finalFile,
 		})
 	})
 
