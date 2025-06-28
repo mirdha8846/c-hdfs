@@ -47,7 +47,12 @@ func main() {
 
 		// Generate AES key
 		
-		key, _ := hex.DecodeString(keyStr) // Convert string key to []byte
+		key, err := hex.DecodeString(keyStr) // Convert string key to []byte
+		if err!=nil{
+			c.JSON(400,gin.H{
+				"message":"Internal Server Error",
+			})
+		}
 
 		// Encrypt the file and store to encrypted folder
 		encPath := filepath.Base(tempPath)
@@ -106,14 +111,20 @@ func main() {
 				"message":"Internal server error!!!",
 			})
 		}
-		completFile,err:=AddFiles(files)
+		tempFileName:=fmt.Sprintf("%s_%s",userID,fileName)
+		completFile,err:=AddFiles(files,tempFileName)
 		if err!=nil{
 			c.JSON(400,gin.H{
 				"message":err,
 			})
 		}
 
-		key, _ := hex.DecodeString(keyStr) 
+		key, err := hex.DecodeString(keyStr) // Convert string key to []byte
+		if err!=nil{
+			c.JSON(400,gin.H{
+				"message":"Internal Server Error",
+			})
+		}
 		finalFile,err:=encryption.DecryptFile(key,completFile.Reader)
 		if err!=nil{
 			c.JSON(400,gin.H{
@@ -121,7 +132,7 @@ func main() {
 			})
 		}
 
-		// defer os.Remove()
+	
 		c.JSON(200,gin.H{
 			"File":finalFile,
 		})

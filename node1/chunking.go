@@ -68,10 +68,10 @@ func SplitFiles(filePath string, tempPath string,n int) ([]Chunk, error) {
 	return chunkingFiles, nil
 }
 
-func AddFiles(filesArray []Chunk) (Chunk, error) {
+func AddFiles(filesArray []Chunk,tempFileName string) (Chunk, error) {
 	// Step 1: Create a temp file to write combined data
-	
-	tempFile, err := os.CreateTemp("", "combined_*")
+    
+	tempFile, err := os.CreateTemp("", tempFileName)
 	if err != nil {
 		return Chunk{}, err
 	}
