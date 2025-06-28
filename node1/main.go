@@ -69,9 +69,14 @@ func main() {
 			return
 		}
 		Uploading(chunkFiles)
-		//todo - jo server pr file upload hui h kis naam se hui h..
 		
-		//todo-remove chunking files...
+		
+		//remove chunking files
+		defer func() {
+			for _, chunkFile := range chunkFiles {
+				os.Remove(chunkFile.Name)
+			}
+		}()
            
 		
 		defer os.Remove(encryptedPath)
