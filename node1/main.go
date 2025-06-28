@@ -88,8 +88,8 @@ func main() {
 	r.POST("/api/getFiles",func(c *gin.Context) {
        userID:=c.PostForm("userID")
 	   fileName:=c.PostForm("fileName")
-       isExsit:=types.NewFileStore().GetFile(userID,fileName)
-	    if !isExsit {
+       isExist := fs.GetFile(userID, fileName)
+	    if !isExist {
 			c.JSON(400,gin.H{
 				"message":"no file found!!!",
 			})

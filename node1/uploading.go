@@ -6,18 +6,19 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"fmt"
 )
 
-func Uploading(chunks []Chunk) (string,error) {
+func Uploading(chunks []Chunk) (error) {
 	for i, chunk := range chunks {
 		firstNode := total_Servers[i%len(total_Servers)]
 		secondNode := total_Servers[(i+1)%len(total_Servers)]
 		
 		if err := sendToNode(firstNode, chunk); err != nil {
-			return "",err
+			return err
 		}
 		if err := sendToNode(secondNode, chunk); err != nil {
-			return "",err
+			return err
 		}
 		defer chunk.Reader.Close()//why we need this and how this works ...
 	}
@@ -69,26 +70,32 @@ func sendToNode(nodeURI string, chunkData Chunk) error {
 
 
 
-func GetFromNode(fileName string) (error, []Chunk) {
+func GetFromNode(originalName string) (error, []Chunk) {
 	var filesPart []Chunk
-	for i := 0; i < len(total_Servers); i++ {
-		nodeURI := node_info[i][0]
-		err, chunk := getFileFromNode(nodeURI, fileName)
 
+	for i := 0; i < len(total_Servers); i++ {
+		// Construct part name: filename.enc.part1, part2, ...
+		partFileName := fmt.Sprintf("%s.enc.part%d", originalName, i+1)
+
+		// Try primary node
+		nodeURI := node_info[i][0]
+		err, chunk := getFileFromNode(nodeURI, partFileName)
 		if err != nil {
 			// Try fallback node
 			nextNodeURI := node_info[i][1]
-			err1, chunk := getFileFromNode(nextNodeURI, fileName)
+			err1, chunk := getFileFromNode(nextNodeURI, partFileName)
 			if err1 != nil {
-				return err1,nil
+				return err1, nil
 			}
 			filesPart = append(filesPart, chunk)
 		} else {
 			filesPart = append(filesPart, chunk)
 		}
 	}
+
 	return nil, filesPart
 }
+
 
 
 func getFileFromNode(URI string, fileName string) (error, Chunk) {
