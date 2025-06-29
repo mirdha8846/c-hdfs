@@ -89,11 +89,7 @@ The server will start on port `8082`.
 
 ## Limitations
 
-- Metadata is stored in-memory only (lost on restart).
-- No authentication or authorization.
-- No persistent storage for metadata.
-- No advanced HDFS features (NameNode/DataNode separation, block management, etc.).
-- No production-level error handling or monitoring.
+----
 
 ## License
 

@@ -92,32 +92,5 @@ func DecryptFile(key []byte, reader io.Reader) (*os.File, error) {
 	return tempFile, nil
 }
 
-// func DecryptBytes(key []byte, encryptedData []byte) ([]byte, error) {
-// 	if len(encryptedData) < aes.BlockSize {
-// 		return nil, fmt.Errorf("encrypted data too short")
-// 	}
-
-// 	block, err := aes.NewCipher(key)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	iv := encryptedData[:aes.BlockSize]
-// 	ciphertext := encryptedData[aes.BlockSize:]
-
-// 	stream := cipher.NewCTR(block, iv)
-// 	reader := &cipher.StreamReader{
-// 		S: stream,
-// 		R: bytes.NewReader(ciphertext),
-// 	}
-
-// 	var decrypted bytes.Buffer
-// 	_, err = io.Copy(&decrypted, reader)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return decrypted.Bytes(), nil
-// }
 
 
